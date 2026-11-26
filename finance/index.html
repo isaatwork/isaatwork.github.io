@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Finance">
+<meta name="theme-color" content="#f5f6f8">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
 <title>My Finance Tracker</title>
 <style>
   :root{
@@ -13,7 +21,7 @@
   *{box-sizing:border-box}
   [hidden]{display:none !important}
   body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:var(--text)}
-  .wrap{max-width:1050px;margin:auto;padding:22px 16px 50px}
+  .wrap{max-width:1050px;margin:auto;padding:22px 16px 50px;padding-bottom:calc(50px + env(safe-area-inset-bottom))}
   header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
   h1{font-size:25px;margin:0} h2{font-size:18px;margin:0 0 15px} h3{font-size:15px;margin:0}
   .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
@@ -33,7 +41,9 @@
   .type-btn{background:var(--soft);color:#475569;flex:1}
   .type-btn.active-income{background:#dcfce7;color:#166534}
   .type-btn.active-expense{background:#fee2e2;color:#991b1b}
-  .form-actions{display:flex;justify-content:flex-end;margin-top:12px}
+  .type-btn.active-transfer{background:#dbeafe;color:#1e40af}
+  .form-actions{display:flex;justify-content:flex-end;align-items:flex-end;margin-top:12px}
+  .form-msg{color:var(--red);font-size:13px;margin-top:10px;min-height:0}
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
   .stat-title{font-size:12px;color:var(--muted)} .stat-value{font-size:22px;font-weight:700;margin-top:4px}
   .toolbar{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;margin-bottom:12px}
@@ -42,7 +52,9 @@
   th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
   th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
   .amount-income{color:var(--green);font-weight:700}.amount-expense{color:var(--red);font-weight:700}
+  .amount-transfer{color:var(--accent);font-weight:700}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--soft);font-size:11px}
+  .pill.transfer{background:#dbeafe;color:#1e40af}
   .delete{background:transparent;color:#9ca3af;padding:4px 7px}.delete:hover{color:var(--red)}
   .empty{text-align:center;color:var(--muted);padding:28px}
   .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -54,6 +66,7 @@
     .grid,.stats,.formgrid,.breakdown{grid-template-columns:1fr}
     .toolbar{grid-template-columns:1fr}
     header{align-items:flex-start}.balance{font-size:23px}
+    .type-btn{padding:10px 4px;font-size:14px;white-space:nowrap}
   }
 </style>
 </head>
@@ -80,40 +93,48 @@
   <section class="card section">
     <h2>Add transaction</h2>
     <div class="type-row">
-      <button class="type-btn active-income" id="incomeBtn">+ Money in</button>
-      <button class="type-btn" id="expenseBtn">− Expense</button>
+      <button class="type-btn active-income" id="incomeBtn" type="button">+ Money in</button>
+      <button class="type-btn" id="expenseBtn" type="button">− Expense</button>
+      <button class="type-btn" id="transferBtn" type="button">⇄ Transfer</button>
     </div>
 
     <form id="transactionForm">
       <div class="formgrid">
         <div>
-          <label>Amount (€)</label>
-          <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required>
+          <label for="amount">Amount (€)</label>
+          <input id="amount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" required>
         </div>
         <div>
-          <label>Account</label>
+          <label for="account" id="accountLabel">Account</label>
           <select id="account">
             <option>Cash</option><option>Revolut</option><option>Savings</option>
           </select>
         </div>
-        <div>
-          <label>Category</label>
+        <div id="categoryWrap">
+          <label for="category">Category</label>
           <select id="category"></select>
+        </div>
+        <div id="toWrap" hidden>
+          <label for="toAccount">To</label>
+          <select id="toAccount">
+            <option>Cash</option><option selected>Revolut</option><option>Savings</option>
+          </select>
         </div>
       </div>
       <div class="formgrid" style="margin-top:10px">
         <div>
-          <label>Date</label>
+          <label for="date">Date</label>
           <input id="date" type="date" required>
         </div>
         <div>
-          <label>Description / note</label>
+          <label for="note">Description / note</label>
           <input id="note" type="text" maxlength="100" placeholder="e.g. Aldi groceries">
         </div>
         <div class="form-actions">
-          <button class="primary" type="submit">Add transaction</button>
+          <button class="primary" type="submit" id="submitBtn">Add transaction</button>
         </div>
       </div>
+      <div class="form-msg" id="formMsg" role="alert"></div>
     </form>
   </section>
 
@@ -142,7 +163,7 @@
     <h2>Transaction history</h2>
     <div class="toolbar">
       <input id="search" placeholder="Search description, category...">
-      <select id="historyType"><option value="all">All transactions</option><option value="income">Money in</option><option value="expense">Expenses</option></select>
+      <select id="historyType"><option value="all">All transactions</option><option value="income">Money in</option><option value="expense">Expenses</option><option value="transfer">Transfers</option></select>
       <select id="historyAccount"><option value="all">All accounts</option><option>Cash</option><option>Revolut</option><option>Savings</option></select>
     </div>
     <div class="table-wrap">
@@ -153,23 +174,28 @@
     </div>
   </section>
 
-  <div class="footer-note">Data is stored only in this browser using localStorage. Export/backup can be added later.</div>
+  <div class="footer-note">Data is stored only on this device (in this browser or home-screen app). Export/backup can be added later.</div>
 </div>
 
 <script>
 const KEY='financeTracker_v1';
 const accounts=['Cash','Revolut','Savings'];
-const categories=['Rent','Food','Groceries','Insurance','Utilities','Transport','Shopping','Health','Study','Entertainment','Subscriptions','Travel','Salary','Transfer','Other'];
+// "Transfer" is now its own transaction type, not a category.
+const categories=['Rent','Food','Groceries','Insurance','Utilities','Transport','Shopping','Health','Study','Entertainment','Subscriptions','Travel','Salary','Other'];
 
 let data=JSON.parse(localStorage.getItem(KEY)||'null') || {
   balances:{Cash:0,Revolut:0,Savings:0},
   transactions:[]
 };
+accounts.forEach(a=>{ if(typeof data.balances[a]!=='number') data.balances[a]=0; });
 let type='income';
 
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('en-DE',{style:'currency',currency:'EUR'}).format(n);
-const today=()=>new Date().toISOString().slice(0,10);
+const cents=n=>Math.round(n*100)/100;            // keep balances free of float drift
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Local date (toISOString() is UTC, which gives yesterday's date after midnight in Germany)
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 $('date').value=today();
 $('monthFilter').value=today().slice(0,7);
 
@@ -199,6 +225,7 @@ function filteredMonthlyExpenses(){
     (acc==='all'||t.account===acc));
 }
 
+// Transfers only move money between your own accounts, so they never count as money in or spending.
 function renderStats(){
   const month=$('monthFilter').value;
   const tx=data.transactions.filter(t=>!month||t.date.startsWith(month));
@@ -217,65 +244,114 @@ function renderBreakdown(){
   const used=Object.entries(byCat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   const max=used[0]?.[1]||1;
   $('categoryBreakdown').innerHTML=used.length?used.map(([c,v])=>`
-    <div class="category-row"><span>${c}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><strong>${money(v)}</strong></div>`).join(''):'<div class="empty">No expenses this month.</div>';
+    <div class="category-row"><span>${esc(c)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><strong>${money(v)}</strong></div>`).join(''):'<div class="empty">No expenses this month.</div>';
 
   const byAcc={}; accounts.forEach(a=>byAcc[a]=0);
-  expenses.forEach(t=>byAcc[t.account]+=t.amount);
+  expenses.forEach(t=>byAcc[t.account]=(byAcc[t.account]||0)+t.amount);
+  const accMax=Math.max(...Object.values(byAcc),1);
   $('accountBreakdown').innerHTML=accounts.map(a=>`
-    <div class="category-row"><span>${a}</span><div class="bar"><i style="width:${(byAcc[a]/(Math.max(...Object.values(byAcc),1)))*100}%"></i></div><strong>${money(byAcc[a])}</strong></div>`).join('');
+    <div class="category-row"><span>${a}</span><div class="bar"><i style="width:${byAcc[a]/accMax*100}%"></i></div><strong>${money(byAcc[a])}</strong></div>`).join('');
 }
 
 function renderHistory(){
   const search=$('search').value.toLowerCase().trim();
   const typeF=$('historyType').value;
   const accF=$('historyAccount').value;
-  const rows=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)||b.created-b.created);
+  const rows=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created);
   const filtered=rows.filter(t=>{
-    const hay=(t.note+' '+t.category+' '+t.account).toLowerCase();
+    const hay=(t.note+' '+t.category+' '+t.account+' '+(t.to||'')+(t.type==='transfer'?' transfer':'')).toLowerCase();
     return (!search||hay.includes(search)) &&
       (typeF==='all'||t.type===typeF) &&
-      (accF==='all'||t.account===accF);
+      (accF==='all'||t.account===accF||t.to===accF);
   });
-  $('history').innerHTML=filtered.length?filtered.map(t=>`
+  $('history').innerHTML=filtered.length?filtered.map(t=>{
+    if(t.type==='transfer'){
+      return `
+    <tr>
+      <td>${t.date}</td><td>${t.account} → ${t.to}</td>
+      <td><span class="pill transfer">Transfer</span></td>
+      <td>—</td><td>${esc(t.note||'—')}</td>
+      <td class="amount-transfer">⇄ ${money(t.amount)}</td>
+      <td><button class="delete" type="button" onclick="deleteTransaction('${t.id}')" title="Delete">✕</button></td>
+    </tr>`;
+    }
+    return `
     <tr>
       <td>${t.date}</td><td>${t.account}</td>
       <td><span class="pill">${t.type==='income'?'Money in':'Expense'}</span></td>
-      <td>${t.category}</td><td>${t.note||'—'}</td>
+      <td>${esc(t.category)}</td><td>${esc(t.note||'—')}</td>
       <td class="${t.type==='income'?'amount-income':'amount-expense'}">${t.type==='income'?'+':'−'}${money(t.amount)}</td>
-      <td><button class="delete" onclick="deleteTransaction('${t.id}')" title="Delete">✕</button></td>
-    </tr>`).join(''):'<tr><td colspan="7" class="empty">No transactions found.</td></tr>';
+      <td><button class="delete" type="button" onclick="deleteTransaction('${t.id}')" title="Delete">✕</button></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7" class="empty">No transactions found.</td></tr>';
 }
 
 function render(){renderBalances();renderStats();renderBreakdown();renderHistory();}
 
-$('incomeBtn').onclick=()=>{
-  type='income'; $('incomeBtn').className='type-btn active-income'; $('expenseBtn').className='type-btn';
-  $('category').value='Salary';
-};
-$('expenseBtn').onclick=()=>{
-  type='expense'; $('expenseBtn').className='type-btn active-expense'; $('incomeBtn').className='type-btn';
-  $('category').value='Food';
-};
+function setType(next){
+  type=next;
+  $('incomeBtn').className='type-btn'+(type==='income'?' active-income':'');
+  $('expenseBtn').className='type-btn'+(type==='expense'?' active-expense':'');
+  $('transferBtn').className='type-btn'+(type==='transfer'?' active-transfer':'');
+  const isTransfer=type==='transfer';
+  $('categoryWrap').hidden=isTransfer;
+  $('toWrap').hidden=!isTransfer;
+  $('accountLabel').textContent=isTransfer?'From':'Account';
+  $('submitBtn').textContent=isTransfer?'Transfer money':'Add transaction';
+  $('note').placeholder=isTransfer?'e.g. Move to savings':'e.g. Aldi groceries';
+  if(type==='income') $('category').value='Salary';
+  if(type==='expense') $('category').value='Food';
+  if(isTransfer && $('toAccount').value===$('account').value){
+    $('toAccount').value=accounts.find(a=>a!==$('account').value);
+  }
+  $('formMsg').textContent='';
+}
+$('incomeBtn').onclick=()=>setType('income');
+$('expenseBtn').onclick=()=>setType('expense');
+$('transferBtn').onclick=()=>setType('transfer');
+['account','toAccount'].forEach(id=>$(id).addEventListener('change',()=>{$('formMsg').textContent='';}));
 
 $('transactionForm').onsubmit=e=>{
   e.preventDefault();
-  const amount=parseFloat($('amount').value);
+  const amount=cents(parseFloat($('amount').value));
   if(!amount||amount<=0)return;
   const account=$('account').value;
-  const t={id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),created:Date.now(),
-    amount,account,category:$('category').value,date:$('date').value,note:$('note').value.trim(),type};
+  const to=$('toAccount').value;
+  const category=$('category').value;
+  if(type==='transfer' && account===to){
+    $('formMsg').textContent='Pick two different accounts to transfer between.';
+    return;
+  }
+  const t={id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2),
+    created:Date.now(),amount,account,date:$('date').value,note:$('note').value.trim(),type};
+  if(type==='transfer'){
+    t.to=to; t.category='Transfer';
+    data.balances[account]=cents(data.balances[account]-amount);
+    data.balances[to]=cents(data.balances[to]+amount);
+  }else{
+    t.category=category;
+    data.balances[account]=cents(data.balances[account]+(type==='income'?amount:-amount));
+  }
   data.transactions.push(t);
-  data.balances[account]+=type==='income'?amount:-amount;
-  e.target.reset();$('date').value=today();
-  $('account').value=account;
+  e.target.reset();
+  $('date').value=today();
+  $('account').value=account; $('toAccount').value=to; $('category').value=category;
+  $('formMsg').textContent='';
   save();
 };
+setType('income');
 
 window.deleteTransaction=id=>{
   const t=data.transactions.find(x=>x.id===id);
   if(!t)return;
-  if(!confirm(`Delete this ${t.type==='income'?'income':'expense'} of ${money(t.amount)}?`))return;
-  data.balances[t.account]-=t.type==='income'?t.amount:-t.amount;
+  const label=t.type==='transfer'?`transfer of ${money(t.amount)} from ${t.account} to ${t.to}`:`${t.type==='income'?'income':'expense'} of ${money(t.amount)}`;
+  if(!confirm(`Delete this ${label}?`))return;
+  if(t.type==='transfer'){
+    data.balances[t.account]=cents(data.balances[t.account]+t.amount);
+    data.balances[t.to]=cents(data.balances[t.to]-t.amount);
+  }else{
+    data.balances[t.account]=cents(data.balances[t.account]-(t.type==='income'?t.amount:-t.amount));
+  }
   data.transactions=data.transactions.filter(x=>x.id!==id);
   save();
 };
@@ -293,7 +369,6 @@ $('confirmResetBtn').onclick=()=>{
   data={balances:{Cash:0,Revolut:0,Savings:0},transactions:[]};
   save();
   $('resetPanel').hidden = true;
-  $('resetBtn').textContent = 'Reset history';
 };
 
 ['monthFilter','categoryFilter','accountFilter','search','historyType','historyAccount'].forEach(id=>{
@@ -301,6 +376,10 @@ $('confirmResetBtn').onclick=()=>{
   $(id).addEventListener('change',render);
 });
 render();
+
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>
