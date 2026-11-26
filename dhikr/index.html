@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zikr">
+<meta name="theme-color" content="#0c1411">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+
+<title>Zikr Counter</title>
+
+<style>
+
+/* =========================
+   PAGE
+========================= */
+
+html {
+    background: #0c1411;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+
+    background: #0c1411;
+    color: white;
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Display",
+        Arial,
+        sans-serif;
+
+    overflow-x: hidden;
+}
+
+
+/* =========================
+   MAIN CONTAINER
+========================= */
+
+.container {
+    width: 100%;
+    max-width: 550px;
+
+    margin: auto;
+
+    padding:
+        20px
+        15px
+        40px;
+
+    /* keep content clear of the notch and home bar on iPhone */
+    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+
+    box-sizing: border-box;
+}
+
+
+/* =========================
+   TITLE
+========================= */
+
+.title {
+    text-align: center;
+
+    font-size: 25px;
+    font-weight: 700;
+
+    margin:
+        10px
+        0
+        20px;
+}
+
+
+/* =========================
+   COUNTER CARD
+========================= */
+
+.card {
+
+    background: #17231e;
+
+    border-radius: 25px;
+
+    padding:
+        25px
+        15px
+        20px;
+
+    text-align: center;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+}
+
+
+#dhikrName {
+
+    font-size: 23px;
+
+    font-weight: 700;
+
+    line-height: 1.35;
+
+    min-height: 32px;
+
+}
+
+
+#counter {
+
+    font-size: 80px;
+
+    font-weight: 700;
+
+    line-height: 1;
+
+    margin-top: 12px;
+
+    font-variant-numeric:
+        tabular-nums;
+
+}
+
+
+/* =========================
+   BIG TAP BUTTON
+========================= */
+
+#tap {
+
+    display: block;
+
+    width: 270px;
+    height: 270px;
+
+    max-width: 75vw;
+    max-height: 75vw;
+
+    margin:
+        25px
+        auto
+        18px;
+
+    border-radius: 50%;
+
+    border:
+        2px solid
+        #c8aa60;
+
+    background:
+        radial-gradient(
+            circle,
+            #385343,
+            #1b2c24
+        );
+
+    color: white;
+
+    font-size: 28px;
+
+    font-weight: 700;
+
+    -webkit-appearance: none;
+    appearance: none;
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+}
+
+#tap:active {
+
+    transform: scale(.94);
+
+}
+
+
+/* =========================
+   SMALL BUTTONS
+========================= */
+
+.small-buttons {
+
+    display: flex;
+
+    justify-content: center;
+
+    gap: 10px;
+
+}
+
+
+.small-buttons button {
+
+    padding:
+        11px
+        18px;
+
+    border-radius: 13px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.1);
+
+    background: #101915;
+
+    color: white;
+
+    font-size: 14px;
+
+    -webkit-appearance: none;
+    appearance: none;
+
+    touch-action: manipulation;
+}
+
+.small-buttons button:active {
+
+    transform: scale(.95);
+
+}
+
+
+/* =========================
+   DHIKR LIST
+========================= */
+
+.heading {
+
+    margin:
+        25px
+        5px
+        10px;
+
+    color: #9daaa3;
+
+    font-size: 12px;
+
+    letter-spacing: 1px;
+
+}
+
+
+#list {
+
+    width: 100%;
+}
+
+
+/*
+IMPORTANT:
+
+Each dhikr is a normal button.
+There is NO fixed-height container.
+Therefore the entire webpage
+can scroll normally.
+*/
+
+.dhikr {
+
+    display: flex;
+
+    width: 100%;
+
+    min-height: 58px;
+
+    margin-bottom: 7px;
+
+    padding:
+        12px
+        14px;
+
+    box-sizing: border-box;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    border-radius: 15px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    background: #15211c;
+
+    color: white;
+
+    text-align: left;
+
+    font-size: 14px;
+
+    -webkit-appearance: none;
+    appearance: none;
+
+    touch-action: manipulation;
+}
+
+.dhikr:active {
+
+    background: #25372e;
+
+}
+
+
+.dhikr.selected {
+
+    border-color:
+        #c8aa60;
+
+    background: #1d2d25;
+
+}
+
+
+.name {
+
+    flex: 1;
+
+    line-height: 1.4;
+
+}
+
+
+.number {
+
+    color: #d5b96e;
+
+    min-width: 40px;
+
+    text-align: right;
+
+    font-variant-numeric:
+        tabular-nums;
+
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+.footer {
+
+    text-align: center;
+
+    color: #647169;
+
+    font-size: 11px;
+
+    margin-top: 20px;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<div class="title">
+    ☾ Zikr Counter
+</div>
+
+
+<!-- =========================
+     COUNTER
+========================= -->
+
+<div class="card">
+
+
+<div id="dhikrName">
+    Astaghfirullah
+</div>
+
+
+<div id="counter">
+    0
+</div>
+
+
+<button
+    id="tap"
+    onclick="tapCounter()">
+
+    TAP
+
+</button>
+
+
+<div class="small-buttons">
+
+<button onclick="minusOne()">
+    − 1
+</button>
+
+<button onclick="resetCounter()">
+    Reset
+</button>
+
+</div>
+
+
+</div>
+
+
+
+<!-- =========================
+     LIST
+========================= -->
+
+<div class="heading">
+    DHIKR
+</div>
+
+
+<div id="list">
+
+
+<button
+class="dhikr selected"
+onclick="selectDhikr(0)">
+
+<span class="name">
+Astaghfirullah
+</span>
+
+<span
+class="number"
+id="count0">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(1)">
+
+<span class="name">
+Alhamdulillah
+</span>
+
+<span
+class="number"
+id="count1">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(2)">
+
+<span class="name">
+Allahu Akbar
+</span>
+
+<span
+class="number"
+id="count2">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(3)">
+
+<span class="name">
+Bismillah
+</span>
+
+<span
+class="number"
+id="count3">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(4)">
+
+<span class="name">
+Salawat
+</span>
+
+<span
+class="number"
+id="count4">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(5)">
+
+<span class="name">
+SubhanAllah
+</span>
+
+<span
+class="number"
+id="count5">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(6)">
+
+<span class="name">
+Ya Latif
+</span>
+
+<span
+class="number"
+id="count6">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(7)">
+
+<span class="name">
+Al-Mujib
+</span>
+
+<span
+class="number"
+id="count7">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(8)">
+
+<span class="name">
+Al-Wakil
+</span>
+
+<span
+class="number"
+id="count8">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(9)">
+
+<span class="name">
+Ya Fattah
+</span>
+
+<span
+class="number"
+id="count9">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(10)">
+
+<span class="name">
+Ya Allahu, Ya Razzaqu, Ya Wahhabu
+</span>
+
+<span
+class="number"
+id="count10">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(11)">
+
+<span class="name">
+Amanar-Rasul
+</span>
+
+<span
+class="number"
+id="count11">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(12)">
+
+<span class="name">
+La ilaha illallahu al-Malikul-Haqq-ul-Mubin
+</span>
+
+<span
+class="number"
+id="count12">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(13)">
+
+<span class="name">
+Rabbi inni lima anzalta ilayya min khayrin faqir
+</span>
+
+<span
+class="number"
+id="count13">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(14)">
+
+<span class="name">
+La hawla wa la quwwata illa billah
+</span>
+
+<span
+class="number"
+id="count14">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(15)">
+
+<span class="name">
+SubhanAllahi wa bihamdihi, SubhanAllahil-Azim
+</span>
+
+<span
+class="number"
+id="count15">
+0
+</span>
+
+</button>
+
+
+<button
+class="dhikr"
+onclick="selectDhikr(16)">
+
+<span class="name">
+Innaka 'ala kulli shay'in qadir
+</span>
+
+<span
+class="number"
+id="count16">
+0
+</span>
+
+</button>
+
+
+</div>
+
+
+<div class="footer">
+    Counts are automatically saved on this device.
+</div>
+
+
+</div>
+
+
+
+<script>
+
+/* ==========================================
+   DHIKRS
+========================================== */
+
+const dhikrs = [
+
+"Astaghfirullah",
+
+"Alhamdulillah",
+
+"Allahu Akbar",
+
+"Bismillah",
+
+"Salawat",
+
+"SubhanAllah",
+
+"Ya Latif",
+
+"Al-Mujib",
+
+"Al-Wakil",
+
+"Ya Fattah",
+
+"Ya Allahu, Ya Razzaqu, Ya Wahhabu",
+
+"Amanar-Rasul",
+
+"La ilaha illallahu al-Malikul-Haqq-ul-Mubin",
+
+"Rabbi inni lima anzalta ilayya min khayrin faqir",
+
+"La hawla wa la quwwata illa billah",
+
+"SubhanAllahi wa bihamdihi, SubhanAllahil-Azim",
+
+"Innaka 'ala kulli shay'in qadir"
+
+];
+
+
+/* ==========================================
+   LOAD COUNTS
+========================================== */
+
+let counts =
+JSON.parse(
+localStorage.getItem(
+"zikrCounts"
+)
+);
+
+
+/* If nothing saved */
+
+if (
+!Array.isArray(counts) ||
+counts.length !== dhikrs.length
+) {
+
+counts =
+new Array(dhikrs.length)
+.fill(0);
+
+}
+
+
+/* ==========================================
+   CURRENT DHIKR
+========================================== */
+
+let current = 0;
+
+
+/* ==========================================
+   UPDATE SCREEN
+========================================== */
+
+function updateScreen() {
+
+document.getElementById(
+"dhikrName"
+).innerText =
+dhikrs[current];
+
+
+document.getElementById(
+"counter"
+).innerText =
+counts[current];
+
+
+for (
+let i = 0;
+i < dhikrs.length;
+i++
+) {
+
+document.getElementById(
+"count" + i
+).innerText =
+counts[i];
+
+}
+
+
+/* Highlight selected */
+
+let buttons =
+document.querySelectorAll(
+".dhikr"
+);
+
+
+for (
+let i = 0;
+i < buttons.length;
+i++
+) {
+
+buttons[i].classList.remove(
+"selected"
+);
+
+}
+
+
+buttons[current].classList.add(
+"selected"
+);
+
+}
+
+
+/* ==========================================
+   TAP
+========================================== */
+
+function tapCounter() {
+
+counts[current]++;
+
+save();
+
+updateScreen();
+
+}
+
+
+/* ==========================================
+   MINUS
+========================================== */
+
+function minusOne() {
+
+if (
+counts[current] > 0
+) {
+
+counts[current]--;
+
+save();
+
+updateScreen();
+
+}
+
+}
+
+
+/* ==========================================
+   RESET
+========================================== */
+
+function resetCounter() {
+
+counts[current] = 0;
+
+save();
+
+updateScreen();
+
+}
+
+
+/* ==========================================
+   SELECT DHIKR
+========================================== */
+
+function selectDhikr(index) {
+
+current = index;
+
+updateScreen();
+
+/*
+Return to counter after
+selecting a dhikr.
+*/
+
+window.scrollTo(
+0,
+0
+);
+
+}
+
+
+/* ==========================================
+   SAVE
+========================================== */
+
+function save() {
+
+localStorage.setItem(
+"zikrCounts",
+JSON.stringify(counts)
+);
+
+}
+
+
+/* ==========================================
+   START
+========================================== */
+
+updateScreen();
+
+
+/* Offline support */
+
+if (
+'serviceWorker' in navigator &&
+(location.protocol === 'https:' || location.hostname === 'localhost')
+) {
+navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+</script>
+
+
+</body>
+
+</html>
