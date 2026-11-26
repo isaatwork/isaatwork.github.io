@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Finance Tracker</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --text:#17202a; --muted:#697586;
+    --border:#e5e7eb; --accent:#2563eb; --green:#15803d; --red:#dc2626;
+    --soft:#f1f5f9; --shadow:0 4px 18px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:var(--text)}
+  .wrap{max-width:1050px;margin:auto;padding:22px 16px 50px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
+  h1{font-size:25px;margin:0} h2{font-size:18px;margin:0 0 15px} h3{font-size:15px;margin:0}
+  .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+  button,select,input{font:inherit}
+  button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer}
+  .danger{background:#fee2e2;color:#991b1b}.primary{background:var(--accent);color:white}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:17px;box-shadow:var(--shadow)}
+  .balance-name{color:var(--muted);font-size:13px}.balance{font-size:27px;font-weight:700;margin-top:5px}
+  .positive{color:var(--green)} .negative{color:var(--red)}
+  .section{margin-top:16px}
+  .formgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+  input,select{width:100%;padding:11px;border:1px solid var(--border);border-radius:9px;background:white;outline:none}
+  input:focus,select:focus{border-color:#93c5fd;box-shadow:0 0 0 3px #dbeafe}
+  .type-row{display:flex;gap:8px;margin-bottom:12px}
+  .type-btn{background:var(--soft);color:#475569;flex:1}
+  .type-btn.active-income{background:#dcfce7;color:#166534}
+  .type-btn.active-expense{background:#fee2e2;color:#991b1b}
+  .form-actions{display:flex;justify-content:flex-end;margin-top:12px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .stat-title{font-size:12px;color:var(--muted)} .stat-value{font-size:22px;font-weight:700;margin-top:4px}
+  .toolbar{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;margin-bottom:12px}
+  .table-wrap{overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+  th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .amount-income{color:var(--green);font-weight:700}.amount-expense{color:var(--red);font-weight:700}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--soft);font-size:11px}
+  .delete{background:transparent;color:#9ca3af;padding:4px 7px}.delete:hover{color:var(--red)}
+  .empty{text-align:center;color:var(--muted);padding:28px}
+  .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .category-row{display:grid;grid-template-columns:110px 1fr 80px;align-items:center;gap:9px;margin:10px 0;font-size:13px}
+  .bar{height:8px;background:#e5e7eb;border-radius:20px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);border-radius:20px}
+  .small{font-size:12px;color:var(--muted)}
+  .footer-note{text-align:center;color:#9ca3af;font-size:11px;margin-top:22px}
+  @media(max-width:700px){
+    .grid,.stats,.formgrid,.breakdown{grid-template-columns:1fr}
+    .toolbar{grid-template-columns:1fr}
+    header{align-items:flex-start}.balance{font-size:23px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Finance Tracker</h1>
+      <div class="subtitle">Track every euro across Cash, Revolut and Savings.</div>
+    </div>
+    <button class="danger" id="resetBtn" type="button">Reset history</button>
+  </header>
+  <section class="card section" id="resetPanel" hidden>
+    <h2>Reset all data?</h2>
+    <p>This will permanently delete all transactions and set Cash, Revolut and Savings to €0.00.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button id="cancelResetBtn" type="button">Cancel</button>
+      <button class="danger" id="confirmResetBtn" type="button">Yes, reset everything</button>
+    </div>
+  </section>
+
+  <div class="grid" id="balances"></div>
+
+  <section class="card section">
+    <h2>Add transaction</h2>
+    <div class="type-row">
+      <button class="type-btn active-income" id="incomeBtn">+ Money in</button>
+      <button class="type-btn" id="expenseBtn">− Expense</button>
+    </div>
+
+    <form id="transactionForm">
+      <div class="formgrid">
+        <div>
+          <label>Amount (€)</label>
+          <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required>
+        </div>
+        <div>
+          <label>Account</label>
+          <select id="account">
+            <option>Cash</option><option>Revolut</option><option>Savings</option>
+          </select>
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="category"></select>
+        </div>
+      </div>
+      <div class="formgrid" style="margin-top:10px">
+        <div>
+          <label>Date</label>
+          <input id="date" type="date" required>
+        </div>
+        <div>
+          <label>Description / note</label>
+          <input id="note" type="text" maxlength="100" placeholder="e.g. Aldi groceries">
+        </div>
+        <div class="form-actions">
+          <button class="primary" type="submit">Add transaction</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="stats section" id="stats"></section>
+
+  <section class="card section">
+    <h2>Monthly spending</h2>
+    <div class="toolbar">
+      <input type="month" id="monthFilter">
+      <select id="categoryFilter"><option value="all">All categories</option></select>
+      <select id="accountFilter"><option value="all">All accounts</option><option>Cash</option><option>Revolut</option><option>Savings</option></select>
+    </div>
+    <div class="breakdown">
+      <div>
+        <h3>Expenses by category</h3>
+        <div id="categoryBreakdown"></div>
+      </div>
+      <div>
+        <h3>Expenses by account</h3>
+        <div id="accountBreakdown"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card section">
+    <h2>Transaction history</h2>
+    <div class="toolbar">
+      <input id="search" placeholder="Search description, category...">
+      <select id="historyType"><option value="all">All transactions</option><option value="income">Money in</option><option value="expense">Expenses</option></select>
+      <select id="historyAccount"><option value="all">All accounts</option><option>Cash</option><option>Revolut</option><option>Savings</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="history"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="footer-note">Data is stored only in this browser using localStorage. Export/backup can be added later.</div>
+</div>
+
+<script>
+const KEY='financeTracker_v1';
+const accounts=['Cash','Revolut','Savings'];
+const categories=['Rent','Food','Groceries','Insurance','Utilities','Transport','Shopping','Health','Study','Entertainment','Subscriptions','Travel','Salary','Transfer','Other'];
+
+let data=JSON.parse(localStorage.getItem(KEY)||'null') || {
+  balances:{Cash:0,Revolut:0,Savings:0},
+  transactions:[]
+};
+let type='income';
+
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('en-DE',{style:'currency',currency:'EUR'}).format(n);
+const today=()=>new Date().toISOString().slice(0,10);
+$('date').value=today();
+$('monthFilter').value=today().slice(0,7);
+
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render();}
+
+function populateCategories(){
+  $('category').innerHTML=categories.map(c=>`<option>${c}</option>`).join('');
+  $('categoryFilter').innerHTML='<option value="all">All categories</option>'+categories.map(c=>`<option>${c}</option>`).join('');
+}
+populateCategories();
+
+function renderBalances(){
+  $('balances').innerHTML=accounts.map(a=>`
+    <div class="card">
+      <div class="balance-name">${a}</div>
+      <div class="balance ${data.balances[a]<0?'negative':'positive'}">${money(data.balances[a])}</div>
+    </div>`).join('');
+}
+
+function filteredMonthlyExpenses(){
+  const month=$('monthFilter').value;
+  const cat=$('categoryFilter').value;
+  const acc=$('accountFilter').value;
+  return data.transactions.filter(t=>t.type==='expense' &&
+    (!month || t.date.startsWith(month)) &&
+    (cat==='all'||t.category===cat) &&
+    (acc==='all'||t.account===acc));
+}
+
+function renderStats(){
+  const month=$('monthFilter').value;
+  const tx=data.transactions.filter(t=>!month||t.date.startsWith(month));
+  const income=tx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expenses=tx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  $('stats').innerHTML=`
+    <div class="card"><div class="stat-title">Money in · ${month||'all time'}</div><div class="stat-value positive">${money(income)}</div></div>
+    <div class="card"><div class="stat-title">Spent · ${month||'all time'}</div><div class="stat-value negative">${money(expenses)}</div></div>
+    <div class="card"><div class="stat-title">Net · ${month||'all time'}</div><div class="stat-value ${income-expenses<0?'negative':'positive'}">${money(income-expenses)}</div></div>`;
+}
+
+function renderBreakdown(){
+  const expenses=filteredMonthlyExpenses();
+  const byCat={}; categories.forEach(c=>byCat[c]=0);
+  expenses.forEach(t=>byCat[t.category]=(byCat[t.category]||0)+t.amount);
+  const used=Object.entries(byCat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const max=used[0]?.[1]||1;
+  $('categoryBreakdown').innerHTML=used.length?used.map(([c,v])=>`
+    <div class="category-row"><span>${c}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><strong>${money(v)}</strong></div>`).join(''):'<div class="empty">No expenses this month.</div>';
+
+  const byAcc={}; accounts.forEach(a=>byAcc[a]=0);
+  expenses.forEach(t=>byAcc[t.account]+=t.amount);
+  $('accountBreakdown').innerHTML=accounts.map(a=>`
+    <div class="category-row"><span>${a}</span><div class="bar"><i style="width:${(byAcc[a]/(Math.max(...Object.values(byAcc),1)))*100}%"></i></div><strong>${money(byAcc[a])}</strong></div>`).join('');
+}
+
+function renderHistory(){
+  const search=$('search').value.toLowerCase().trim();
+  const typeF=$('historyType').value;
+  const accF=$('historyAccount').value;
+  const rows=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)||b.created-b.created);
+  const filtered=rows.filter(t=>{
+    const hay=(t.note+' '+t.category+' '+t.account).toLowerCase();
+    return (!search||hay.includes(search)) &&
+      (typeF==='all'||t.type===typeF) &&
+      (accF==='all'||t.account===accF);
+  });
+  $('history').innerHTML=filtered.length?filtered.map(t=>`
+    <tr>
+      <td>${t.date}</td><td>${t.account}</td>
+      <td><span class="pill">${t.type==='income'?'Money in':'Expense'}</span></td>
+      <td>${t.category}</td><td>${t.note||'—'}</td>
+      <td class="${t.type==='income'?'amount-income':'amount-expense'}">${t.type==='income'?'+':'−'}${money(t.amount)}</td>
+      <td><button class="delete" onclick="deleteTransaction('${t.id}')" title="Delete">✕</button></td>
+    </tr>`).join(''):'<tr><td colspan="7" class="empty">No transactions found.</td></tr>';
+}
+
+function render(){renderBalances();renderStats();renderBreakdown();renderHistory();}
+
+$('incomeBtn').onclick=()=>{
+  type='income'; $('incomeBtn').className='type-btn active-income'; $('expenseBtn').className='type-btn';
+  $('category').value='Salary';
+};
+$('expenseBtn').onclick=()=>{
+  type='expense'; $('expenseBtn').className='type-btn active-expense'; $('incomeBtn').className='type-btn';
+  $('category').value='Food';
+};
+
+$('transactionForm').onsubmit=e=>{
+  e.preventDefault();
+  const amount=parseFloat($('amount').value);
+  if(!amount||amount<=0)return;
+  const account=$('account').value;
+  const t={id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),created:Date.now(),
+    amount,account,category:$('category').value,date:$('date').value,note:$('note').value.trim(),type};
+  data.transactions.push(t);
+  data.balances[account]+=type==='income'?amount:-amount;
+  e.target.reset();$('date').value=today();
+  $('account').value=account;
+  save();
+};
+
+window.deleteTransaction=id=>{
+  const t=data.transactions.find(x=>x.id===id);
+  if(!t)return;
+  if(!confirm(`Delete this ${t.type==='income'?'income':'expense'} of ${money(t.amount)}?`))return;
+  data.balances[t.account]-=t.type==='income'?t.amount:-t.amount;
+  data.transactions=data.transactions.filter(x=>x.id!==id);
+  save();
+};
+
+// Use an in-page confirmation panel instead of window.confirm(),
+// because some HTML viewers block browser confirmation dialogs.
+$('resetBtn').onclick=()=>{
+  $('resetPanel').hidden = false;
+  $('resetPanel').scrollIntoView({behavior:'smooth', block:'nearest'});
+};
+$('cancelResetBtn').onclick=()=>{
+  $('resetPanel').hidden = true;
+};
+$('confirmResetBtn').onclick=()=>{
+  data={balances:{Cash:0,Revolut:0,Savings:0},transactions:[]};
+  save();
+  $('resetPanel').hidden = true;
+  $('resetBtn').textContent = 'Reset history';
+};
+
+['monthFilter','categoryFilter','accountFilter','search','historyType','historyAccount'].forEach(id=>{
+  $(id).addEventListener('input',render);
+  $(id).addEventListener('change',render);
+});
+render();
+</script>
+</body>
+</html>
